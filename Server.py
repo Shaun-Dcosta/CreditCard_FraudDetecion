@@ -6,10 +6,10 @@ fraud_number = {}
 lock = threading.Lock()
 
 def fraud_detection(transaction_data):
-    if transaction_data['stolen_or_lost'] == 1 and transaction_data['cvv_number']==None:
+    if transaction_data['stolen_or_lost'] == 1 :
         card_number = transaction_data.get('sender_card_number')
-        fraud_number[card_number]=1
-        return True, f"Card reported as stolen or lost: {card_number}"
+        fraud_number[card_number] = 1
+        return True
     else:
         card_number = transaction_data.get('sender_card_number', 0)
         amount = transaction_data.get('amount', 0)
@@ -17,9 +17,9 @@ def fraud_detection(transaction_data):
 
         with lock:
             if card_number in fraud_number:
-                return True, "Fraudulent transaction detected"
+                return True
             else:
-                return False, None
+                return False
 
 def handle_client(client_socket, addr):
     try:
@@ -29,12 +29,18 @@ def handle_client(client_socket, addr):
 
         transaction_data = pickle.loads(data)
 
-        is_fraudulent, message = fraud_detection(transaction_data)
-        if not is_fraudulent:
-            print(f"Received Transaction Data from {addr}: {transaction_data}")
+        if transaction_data['stolen_or_lost'] == 1 and transaction_data['amount']==None:
+            print(f"Stolen Card Report from {addr}: {transaction_data}. Blocked")
+            client_socket.send(pickle.dumps({'is_fraudulent': True}))
         else:
-            print(f"Transaction from {addr}: {transaction_data} was blocked. {message}")
-        client_socket.send(pickle.dumps({'is_fraudulent': is_fraudulent, 'message': message}))
+            is_fraudulent= fraud_detection(transaction_data)
+
+            if not is_fraudulent:
+                print(f"Received Transaction Data from {addr}: {transaction_data}")
+            else:
+                print(f"Transaction from {addr}: {transaction_data} was blocked.")
+
+            client_socket.send(pickle.dumps({'is_fraudulent': is_fraudulent}))
 
     except Exception as e:
         print(f"Error handling client {addr}: {e}")
