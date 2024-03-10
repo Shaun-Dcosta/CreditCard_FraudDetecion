@@ -6,16 +6,17 @@ fraud_number = {}
 lock = threading.Lock()
 
 def fraud_detection(transaction_data):
-    if 'stolen_or_lost' in transaction_data and transaction_data['stolen_or_lost'] == "1":
-        report_card_number = transaction_data.get('reported_card_number')
-        return True, f"Card reported as stolen or lost: {report_card_number}"
+    if transaction_data['stolen_or_lost'] == 1 and transaction_data['cvv_number']==None:
+        card_number = transaction_data.get('sender_card_number')
+        fraud_number[card_number]=1
+        return True, f"Card reported as stolen or lost: {card_number}"
     else:
-        number = transaction_data.get('sender_card_number', 0)
+        card_number = transaction_data.get('sender_card_number', 0)
         amount = transaction_data.get('amount', 0)
         cvv = transaction_data.get('cvv_number', 0)
 
         with lock:
-            if number in fraud_number:
+            if card_number in fraud_number:
                 return True, "Fraudulent transaction detected"
             else:
                 return False, None
@@ -44,7 +45,7 @@ def handle_client(client_socket, addr):
 
 def start_server():
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    host = '192.168.0.104'
+    host = '192.168.1.4'
     port = 12345
     server_socket.bind((host, port))
     server_socket.listen(5)

@@ -3,12 +3,14 @@ from tkinter import messagebox, Toplevel
 import socket
 import pickle
 
+fraud_number={}
+
 # Function to send transaction data to the server
 def send_transaction_data(transaction_data):
     try:
         # Establish a connection with the server
         client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        host = '192.168.0.104'  # Server IP address
+        host = '192.168.1.4'  # Server IP address
         port = 12345            # Server port
         client_socket.connect((host, port))
 
@@ -48,6 +50,18 @@ def open_report_stolen_window():
         card_number = card_number_entry.get()
         cvv = cvv_entry.get()
 
+        fraud_number[card_number]=1
+
+        transaction_data = transaction_data = {
+                'sender_card_number': card_number,
+                'cvv_number': cvv,
+                'amount': None,
+                'receiver_card_number':None,
+                'stolen_or_lost':fraud_number[card_number]
+            }
+        
+        send_transaction_data(transaction_data)
+        
         # Include the logic to report the card as stolen with card_number and cvv
         print(f"Card reported as stolen\nCard Number: {card_number}\nCVV: {cvv}")
         report_stolen_window.destroy()
@@ -84,12 +98,15 @@ if __name__ == "__main__":
             amount = amount_entry.get()
             receiver_card_number = receiver_card_entry.get()
 
+            fraud_number[sender_card_number]=0
+
             # Construct transaction data dictionary
             transaction_data = {
                 'sender_card_number': sender_card_number,
                 'cvv_number': cvv_number,
                 'amount': amount,
                 'receiver_card_number': receiver_card_number,
+                'stolen_or_lost':fraud_number[sender_card_number]
             }
 
             # Send transaction data to the server
